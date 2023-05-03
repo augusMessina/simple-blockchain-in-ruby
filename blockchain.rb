@@ -31,6 +31,7 @@ require 'sinatra'
 require 'securerandom'
 
 LEDGER = []
+$blockIndex = 1
 
 #####
 ## Blockchain building, one block at a time.
@@ -43,8 +44,7 @@ LEDGER = []
 
 
 def create_first_block
-	i = 0
-	instance_variable_set( "@b#{i}", 
+	instance_variable_set( "@b#{0}", 
 		Block.first( 
 			{ from: "Dutchgrown", to: "Vincent", what: "Tulip Bloemendaal Sunset", qty: 10 },
 			{ from: "Keukenhof", to: "Anne", what: "Tulip Semper Augustus", qty: 7 }
@@ -57,15 +57,11 @@ end
 	
 	
 	
-def add_block
-	i = 1
+def add_block(transactions)
+	instance_variable_set("@b#{$blockIndex}", Block.next( LEDGER.last, transactions))
+	LEDGER << instance_variable_get("@b#{$blockIndex}")
 
-		instance_variable_set("@b#{i}", Block.next( (instance_variable_get("@b#{i-1}")), get_transactions_data))
-		LEDGER << instance_variable_get("@b#{i}")
-		p "============================"
-		pp instance_variable_get("@b#{i}")
-		p "============================"
-		i += 1
+	$blockIndex += 1
 	
 end
 
@@ -101,5 +97,24 @@ get '/chain' do
 		chain: blocks
 	}
 	status 200
+	response.to_json
+end
+
+post '/newBlock' do
+	content_type :json
+	values = JSON.parse(request.body.read)
+	return status 404 unless values['transactions']
+  
+	# Create a new Block
+	add_block(values['transactions'])
+
+	blocks = LEDGER.map(&:to_hash)
+
+	response = {
+		message: "New block added",
+		block: blocks.last 
+	}
+
+	status 201
 	response.to_json
   end
