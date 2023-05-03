@@ -43,4 +43,16 @@ class Block
   def self.next( previous, transactions )
     Block.new( previous.index+1, transactions, previous.hash )
   end
+
+  def to_hash
+    {
+      index: @index,
+      timestamp: @timestamp,
+      transactions: @transactions,
+      transactions_count: @transactions_count,
+      previous_hash: @previous_hash,
+      hash: @hash,
+      nonce: @nonce
+    }
+  end
 end  # class Block
