@@ -3,20 +3,42 @@ class Block
 							:transactions_count, :previous_hash, 
 							:nonce, :hash 
 
-  def initialize(index, transactions, previous_hash)
+  # el bloque se inicializa con los parámetros, la fecha y hora,
+  # y los valores de retorno de compute_hash_with_proof_of_work
+  def initialize(index, transactions, previous_hash, minerIP)
     @index         		 	 = index
     @timestamp      	 	 = Time.now
     @transactions 	 		 = transactions
 		@transactions_count  = transactions.size
     @previous_hash 		 	 = previous_hash
-    @nonce, @hash  		 	 = compute_hash_with_proof_of_work
+
+    # se utiliza minerIP || nil, indicando que si minerIP es nulo, 
+    # se pasará nil (objeto nulo) como parámetro
+    @nonce, @hash  		 	 = compute_hash_with_proof_of_work(minerIP || nil)
+
   end
 
-	def compute_hash_with_proof_of_work(difficulty="00")
+  # función de cálculo de los valores de hash y nonce.
+  # Se inicia un bucle en el que se calcula un hash a partir
+  # de un nonce inicial. Si el hash no cumple con la dificultad
+  # propuesta, se intenta otra vez con un nonce distinto
+	def compute_hash_with_proof_of_work(difficulty="00", minerIP)
 		nonce = 0
 		loop do 
 			hash = calc_hash_with_nonce(nonce)
 			if hash.start_with?(difficulty)
+
+        # si la dificultad es satisfecha, se añade a las transacciones del bloque
+        # una recompensa para el minero (si se tiene la IP de este) y se retornan
+        # valores del hash y del nonce
+        if minerIP
+          @transactions << {
+            from: "Blockchain Admin",
+            to: minerIP,
+            what: "Bitcoin",
+            qty: 1
+          }
+        end
 				return [nonce, hash]
 			else
 				nonce +=1
@@ -24,6 +46,8 @@ class Block
 		end
 	end
 	
+  # función de cálculo del hash a partir del nonce pasado
+  # como parámetro y el resto de atributos del bloque
   def calc_hash_with_nonce(nonce=0)
     sha = Digest::SHA256.new
     sha.update( nonce.to_s + 
@@ -37,13 +61,15 @@ class Block
 
   def self.first( *transactions )    # Create genesis block
     ## Uses index zero (0) and arbitrary previous_hash ("0")
-    Block.new( 0, transactions, "0" )
+    Block.new( 0, transactions, "0", nil )
   end
 
-  def self.next( previous, transactions )
-    Block.new( previous.index+1, transactions, previous.hash )
+  def self.next( previous, transactions, minerIP )
+    Block.new( previous.index+1, transactions, previous.hash, minerIP )
   end
 
+  # función que devuelve un hash a paritr de
+  # los atributos del bloque
   def to_hash
     {
       index: @index,

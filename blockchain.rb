@@ -30,7 +30,20 @@ require 'digest/md5'
 require 'sinatra'
 require 'securerandom'
 
+# en caso de querer permitir el acceso desde otros nodos
+# en la misma red, deberá descomentar la línea de abajo
+# e introducir la IP de su máquina
+
+#set :bind, 'tu IP'
+
+# en LEDGER se guarda la referencia de cada bloque en orden
 LEDGER = []
+
+# en este array se guardarán las transacciones pendientes
+# de ser guardadas en un bloque
+$pending_transactions = []
+
+# esta variable marcará el index de cada bloque
 $blockIndex = 1
 
 #####
@@ -42,7 +55,7 @@ $blockIndex = 1
 ## 	when a user has finish to add transaction, 
 ##  the block is added to the blockchain and writen in the ledger
 
-
+# creación del bloque génesis
 def create_first_block
 	instance_variable_set( "@b#{0}", 
 		Block.first( 
@@ -51,46 +64,31 @@ def create_first_block
 		)
 	)
 	LEDGER << @b0
-	
-	
 end
-	
-	
-	
-def add_block(transactions)
-	instance_variable_set("@b#{$blockIndex}", Block.next( LEDGER.last, transactions))
+
+# con la siguiente función se crea un nuevo bloque, a partir de las transacciones,
+# la referencia del bloque anterior, y la IP del minero, que se utilizará para
+# grabar una recompensa en las transacciones
+def mine_block(minerIP)
+	instance_variable_set("@b#{$blockIndex}", Block.next( LEDGER.last, $pending_transactions, minerIP))
 	LEDGER << instance_variable_get("@b#{$blockIndex}")
-
 	$blockIndex += 1
-	
-end
 
-def launcher
-	puts "==========================="
-	puts ""
-	puts "Welcome to Simple Blockchain In Ruby !"
-	puts ""
-	sleep 1.5
-	puts "This program was created by Anthony Amar for and educationnal purpose"
-	puts ""
-	sleep 1.5
-	puts "Wait for the genesis (the first block of the blockchain)"
-	puts ""
-	for i in 1..10
-		print "."
-		sleep 0.5
-		break if i == 10
-	end
-	puts "" 
-	puts "" 
-	puts "==========================="
-	create_first_block
+	# las transacciones pendientes se eliminan al crear un bloque
+	$pending_transactions = []
 end
 
 create_first_block
 
+# aquí comienza la declaración de endpoints para el servidor de sinatra
+
+# endpoint GET que devuelve toda la cadena
 get '/chain' do
 	content_type :json
+
+	# con el método 'map' sustituimos cada valor del array
+	# por otro, en este caso, se sustituirá por lo que devuelve
+	# el método 'to_hash' de la clase Block
 	blocks = LEDGER.map(&:to_hash)
 
 	response = {
@@ -100,21 +98,65 @@ get '/chain' do
 	response.to_json
 end
 
-post '/newBlock' do
+# endpoint GET que devuelve las transacciones pendientes
+get '/transactions' do
 	content_type :json
+
+	response = {
+		pending_transactions: $pending_transactions
+	}
+	status 200
+	response.to_json
+end
+
+# endpoint POST que añade transacciones al array de pendientes
+post '/newTransaction' do
+	content_type :json
+
 	values = JSON.parse(request.body.read)
-	return status 404 unless values['transactions']
-  
-	# Create a new Block
-	add_block(values['transactions'])
+
+	# en caso de no haber pasado los parámetros adecuados, se devuelve status 400 (Bad Request)
+	return status 400 unless (values['from'] and values['to'] and values['what'] and values['qty'])
+
+	$pending_transactions << {
+		from: values['from'],
+		to: values['to'],
+		what: values['what'],
+		qrt: values['qty']
+	}
+
+	response = {
+		message: "Transaction added succesfully",
+		transaction: $pending_transactions.last
+	}
+	status 200
+	response.to_json
+end
+
+# endpoint POST que añade bloques a la cadena, llamando a la función mine_block
+# y pasando la IP recibida
+post '/mine' do
+	content_type :json
+
+	# si no hay transacciones pendientes, se devuelve status 500 (Service Unavailable)
+	if $pending_transactions.length() == 0
+		response = {
+			message: "No transactions available to mine a block"
+		}
+		status 503
+		return
+	end
+
+	mine_block(request.ip)
 
 	blocks = LEDGER.map(&:to_hash)
 
+	# devuelve el bloque añadido
 	response = {
-		message: "New block added",
+		message: "New block mined",
 		block: blocks.last 
 	}
 
-	status 201
+	status 200
 	response.to_json
-  end
+end

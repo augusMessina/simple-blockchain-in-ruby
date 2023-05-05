@@ -1,3 +1,5 @@
+# con nuestro código esta clase no se usa
+
 def get_transactions_data
 
 	transactions_block ||= []
