@@ -26,9 +26,7 @@ require_relative 'transaction'		# method
 
 ### requires añadidos ###
 require 'json'
-require 'digest/md5'
 require 'sinatra'
-require 'securerandom'
 
 # en caso de querer permitir el acceso desde otros nodos
 # en la misma red, deberá descomentar la línea de abajo
