@@ -180,6 +180,8 @@ post '/mine' do
 		return
 	end
 
+	resolve_nodes
+
 	mine_block(request.ip)
 
 	blocks = LEDGER.map(&:to_hash)
@@ -204,12 +206,19 @@ post '/nodes/register' do
 	# en caso de no haber pasado los parámetros adecuados, se devuelve status 400 (Bad Request)
 	return status 400 unless values['nodes']
 
-	values['nodes'].each do |node|
+	for node in values['nodes']
 		# se añade cada nodo a la cadena
 		# en caso de que ya exista, no se añade
 		# ya que el método '<<' no añade duplicados
 		$nodes << node
 	end
+
+	response = {
+		message: "Nodes added",
+		nodes: $nodes
+	}
+	status 200
+	response.to_json
 end
 
 # endpoint GET que devuelve todos los nodos de la cadena
