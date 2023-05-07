@@ -30,9 +30,9 @@ sudo bundle exec ruby blockchain.rb
 
 Al correr el programa, se levantarán los siguientes endpoints:
 
-- /chain: enpoint GET que devuelve la cadena del nodo.
-- /transactions: enpoint GET que devuelve las transacciones pendientes del nodo.
-- /newTransactions: enpoint POST que añade una transacción al array de transacciones pendientes. Se debe enviar con el siguiente formato:
+- /chain: endpoint GET que devuelve la cadena del nodo.
+- /transactions: endpoint GET que devuelve las transacciones pendientes del nodo.
+- /newTransactions: endpoint POST que añade una transacción al array de transacciones pendientes. Se debe enviar con el siguiente formato:
 
 ```
 {
