@@ -14,7 +14,13 @@ sudo gem install bundler
 
 # Run it
 
-Para correr el programa, usar el comando:
+Para correr el programa, si es la primera vez que se ejecuta, habrá que ejecutar el siguiente comando:
+
+```
+bundle install
+```
+
+Con dicho comando instalaremos las Ruby Gems necesarias. Para correr el programa, ejecutaremos:
 
 ```
 sudo bundle exec ruby blockchain.rb
