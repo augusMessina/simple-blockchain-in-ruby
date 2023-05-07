@@ -28,7 +28,7 @@ sudo bundle exec ruby blockchain.rb
 
 # Endpoints
 
-Al correr el programa, se lecantarán los siguientes endpoints:
+Al correr el programa, se levantarán los siguientes endpoints:
 
 - /chain: enpoint GET que devuelve la cadena del nodo.
 - /transactions: enpoint GET que devuelve las transacciones pendientes del nodo.
