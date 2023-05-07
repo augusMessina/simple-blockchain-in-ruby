@@ -27,12 +27,13 @@ require_relative 'transaction'		# method
 ### requires añadidos ###
 require 'json'
 require 'sinatra'
+require 'net/http'
+require 'uri'
 
 # en caso de querer permitir el acceso desde otros nodos
 # en la misma red, deberá descomentar la línea de abajo
 # e introducir la IP de su máquina
-
-#set :bind, 'tu IP'
+#set :bind, 'tu ip'
 
 # en LEDGER se guarda la referencia de cada bloque en orden
 LEDGER = []
@@ -40,6 +41,9 @@ LEDGER = []
 # en este array se guardarán las transacciones pendientes
 # de ser guardadas en un bloque
 $pending_transactions = []
+
+# en este array se guardarán las IPs de los nodos
+$nodes = []
 
 # esta variable marcará el index de cada bloque
 $blockIndex = 1
@@ -74,6 +78,37 @@ def mine_block(minerIP)
 
 	# las transacciones pendientes se eliminan al crear un bloque
 	$pending_transactions = []
+end
+
+#
+def resolve_nodes
+	for node in $nodes do
+		response = JSON.parse(Net::HTTP.get(URI.parse("http://#{node}/chain")))
+
+		length = response['chain'].length()
+		chain = response['chain']
+
+		# Si la cadena recibida es más larga que la cadena propia,
+		# se considerará como una cadena más actualizada, y por
+		# lo tanto se actualizará la propia a ella
+		if length > LEDGER.length()
+			max_length = length
+			new_chain = chain
+		end
+		
+	end
+	
+	if new_chain
+		LEDGER.clear()
+		$blockIndex = 0
+		for block in new_chain do
+			instance_variable_set("@b#{$blockIndex}", Block.newCopiedBlock(block))
+			LEDGER << instance_variable_get("@b#{$blockIndex}")
+		end
+		return true
+	end
+
+	return false
 end
 
 create_first_block
@@ -157,4 +192,45 @@ post '/mine' do
 
 	status 200
 	response.to_json
+end
+
+# los siguientes endpoints permiten un sistema descentralizado
+
+post '/nodes/register' do
+	content_type :json
+
+	values = JSON.parse(request.body.read)
+
+	# en caso de no haber pasado los parámetros adecuados, se devuelve status 400 (Bad Request)
+	return status 400 unless values['nodes']
+
+	values['nodes'].each do |node|
+		# se añade cada nodo a la cadena
+		# en caso de que ya exista, no se añade
+		# ya que el método '<<' no añade duplicados
+		$nodes << node
+	end
+end
+
+# endpoint GET que devuelve todos los nodos de la cadena
+get '/nodes/resolve' do
+	content_type :json
+
+
+
+	# se llama a la fución 'resolve_nodes', que compara
+	# la cadena de este nodo con la del resto
+	if resolve_nodes
+		response = {
+			message: "Chain was updated."
+		}
+		status 200
+		response.to_json
+	else
+		response = {
+			message: "Chain was not updated"
+		}
+		status 500
+		response.to_json
+	end
 end

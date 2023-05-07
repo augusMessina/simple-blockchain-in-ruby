@@ -5,16 +5,19 @@ class Block
 
   # el bloque se inicializa con los parámetros, la fecha y hora,
   # y los valores de retorno de compute_hash_with_proof_of_work
-  def initialize(index, transactions, previous_hash, minerIP)
+  def initialize(index, transactions, previous_hash, minerIP=nil, timestamp=nil, nonce=nil, hash=nil)
     @index         		 	 = index
-    @timestamp      	 	 = Time.now
+    @timestamp      	 	 = timestamp || Time.now
     @transactions 	 		 = transactions
 		@transactions_count  = transactions.size
     @previous_hash 		 	 = previous_hash
 
-    # se utiliza minerIP || nil, indicando que si minerIP es nulo, 
-    # se pasará nil (objeto nulo) como parámetro
-    @nonce, @hash  		 	 = compute_hash_with_proof_of_work(minerIP || nil)
+    if (nonce and hash)
+      @nonce = nonce
+      @hash = hash
+    else
+      @nonce, @hash  		 	 = compute_hash_with_proof_of_work(minerIP || nil)
+    end
 
   end
 
@@ -61,11 +64,15 @@ class Block
 
   def self.first( *transactions )    # Create genesis block
     ## Uses index zero (0) and arbitrary previous_hash ("0")
-    Block.new( 0, transactions, "0", nil )
+    Block.new( 0, transactions, "0")
   end
 
   def self.next( previous, transactions, minerIP )
     Block.new( previous.index+1, transactions, previous.hash, minerIP )
+  end
+
+  def self.newCopiedBlock( block )
+    Block.new( block['index'], block['transactions'], block['previous_hash'], nil, block['timestamp'], block['nonce'], block['hash'] )
   end
 
   # función que devuelve un hash a paritr de
